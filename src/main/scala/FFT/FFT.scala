@@ -111,33 +111,25 @@ class FFT_TOP extends Module
   out_ar(0)     := io.in
   out_vld_ar(0) := io.in_valid
 
- /* for (i <- 0 until stages) {  
-    val BF4 = Butterfly4_TOP(out_ar(i), out_vld_ar(i)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
-    out_ar(i + 1)     := BF4._1
-    out_vld_ar(i + 1) := BF4._2
-  }
-  io.out       := RegNext(out_ar(stages))
-  io.out_valid := RegNext(out_vld_ar(stages))
-  */
 
 
-    val BF4_0 = Butterfly4_TOP_0(out_ar(0), out_vld_ar(0)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
+    val BF4_0 = Butterfly4_TOP_0(out_ar(0), out_vld_ar(0)) 
     out_ar(1)     := BF4_0._1
     out_vld_ar(1) := BF4_0._2
 
-    val BF4_1 = Butterfly4_TOP_1(out_ar(1), out_vld_ar(1)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
+    val BF4_1 = Butterfly4_TOP_1(out_ar(1), out_vld_ar(1)) 
     out_ar(2)     := BF4_1._1
     out_vld_ar(2) := BF4_1._2
 
-    val BF4_2 = Butterfly4_TOP_2(out_ar(2), out_vld_ar(2)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
+    val BF4_2 = Butterfly4_TOP_2(out_ar(2), out_vld_ar(2)) 
     out_ar(3)     := BF4_2._1
     out_vld_ar(3) := BF4_2._2
 
-    val BF4_3 = Butterfly4_TOP_3(out_ar(3), out_vld_ar(3)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
+    val BF4_3 = Butterfly4_TOP_3(out_ar(3), out_vld_ar(3)) 
     out_ar(4)     := BF4_3._1
     out_vld_ar(4) := BF4_3._2
 
-    val BF4_4 = Butterfly4_TOP_4(out_ar(4), out_vld_ar(4)) //TODO, RAM_DEPTH:1,4,16,64,256  ROM_DEPTH:16,64,256,1024
+    val BF4_4 = Butterfly4_TOP_4(out_ar(4), out_vld_ar(4)) 
     out_ar(5)     := BF4_4._1
     out_vld_ar(5) := BF4_4._2
 
