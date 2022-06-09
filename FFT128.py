@@ -1,6 +1,8 @@
 #FFT 128
 import cmath
 import math
+import numpy as np
+import matplotlib.pyplot as plt 
 FFTLength=128
 COS_SIN_FP = 12
 SQRT_FP = 12
@@ -328,3 +330,16 @@ fft_out = fft128(fft_in)
 print(fft_out)
 print(ifft128(fft_out))
     
+N=128
+x = np.arange(N)           # 频率个数
+abs_y=np.abs(fft_out)                # 取复数的绝对值，即复数的模(双边频谱)
+angle_y=np.angle(fft_out)              #取复数的角度
+ 
+plt.figure()
+plt.plot(x,abs_y)   
+plt.title('双边振幅谱（未归一化）')
+ 
+plt.figure()
+plt.plot(x,angle_y)   
+plt.title('双边相位谱（未归一化）')
+plt.show()
