@@ -3,6 +3,7 @@ import cmath
 import math
 FFTLength=128
 COS_SIN_FP = 12
+SQRT_FP = 12
 DW_IN = 12
 
 def clip(op,DW):
@@ -20,8 +21,11 @@ def ComplexSub (op1,op2):
     return complex(op1.real - op2.real,op1.imag - op2.imag)
 def ComplexMul (op1,op2,DW):
     #return complex(op1.real * op2.real - op1.imag * op2.imag, op1.real * op2.imag + op1.imag * op2.real)
-    a = (int)(op1.real * op2.real - op1.imag * op2.imag)>>COS_SIN_FP
-    b = (int)(op1.real * op2.imag + op1.imag * op2.real)>>COS_SIN_FP
+    a = (int)(op1.real * op2.real - op1.imag * op2.imag)>>(COS_SIN_FP-1) 
+    b = (int)(op1.real * op2.imag + op1.imag * op2.real)>>(COS_SIN_FP-1) 
+    a = (a + 1)>>1 
+    b = (b + 1)>>1 
+
     return complex(clip(a,DW),clip(b,DW))
 
 def sin_lut(k): 
@@ -59,104 +63,121 @@ def Butterfly4(in1,in2,in3,in4):
     c3 =  ComplexSub(b1,b3j)
     return(c0,c1,c2,c3)
 
-fft_in = list(range(128)) #DW IN = 12
+fft_in = []
+for i in range (0,128):
+    fft_in.append(complex(i,i)) #DW IN = 12
+
+#print(fft_in)
 #######################################################################
 #fft128, radix 4 --> 4 --> 4 --> 2, reorder in, order out
 #######################################################################
 
-#def fft128(fft_in):
+def fft128(fft_in):
 
-#reorder in for bf4
-fft_in_reorder=[]
-for i in range(0,128):
-    k1 = i & 0x3
-    k2 = (i >> 2) & 0x3
-    k3 = (i >> 4) & 0x3
-    k4 = (i >> 6) & 0x3
-    new_i = k1*4*4*2 + k2*4*2 + k3*2 + k4 
-    fft_in_reorder.append(fft_in[new_i])
+    #reorder in for bf4
+    fft_in_reorder=[]
+    for i in range(0,128):
+        k1 = i & 0x3
+        k2 = (i >> 2) & 0x3
+        k3 = (i >> 4) & 0x3
+        k4 = (i >> 6) & 0x3
+        new_i = k1*4*4*2 + k2*4*2 + k3*2 + k4 
+        fft_in_reorder.append(fft_in[new_i])
 
-#print(fft_in_reorder)
+    #print(fft_in_reorder)
 
-#stg0 bf4
-stg0_bf =[]
-for i in range(0,int(FFTLength/4)):
-    res = (Butterfly4(fft_in_reorder[i],fft_in_reorder[i+1],fft_in_reorder[i+2],fft_in_reorder[i+3]))
-    stg0_bf.append(res[0])
-    stg0_bf.append(res[1])
-    stg0_bf.append(res[2])
-    stg0_bf.append(res[3])
-print(stg0_bf)
+    #stg0 bf4
+    stg0_bf =[]
+    for i in range(0,int(FFTLength/4)):
+        res = (Butterfly4(fft_in_reorder[i*4],fft_in_reorder[i*4+1],fft_in_reorder[i*4+2],fft_in_reorder[i*4+3]))
+        stg0_bf.append(res[0])
+        stg0_bf.append(res[1])
+        stg0_bf.append(res[2])
+        stg0_bf.append(res[3])
+    #print(stg0_bf)
 
-#stg0 twiddle, 16 cos/sin lut
-stg0_tw =[]
-for i in range(0,FFTLength):
-    lut_adr_l = i & (int)(2**(math.log(16,2)-2)-1) 
-    lut_adr_h = (i >> (int)(math.log(16,2)-2)) & 0x3 #2bit
-    lut_adr = lut_adr_h * lut_adr_l #0 0 0 0 , 0 1 2 3, 0 2 4 6, 0 0 0 0, 0 1 2 3。。。
-    wn = wn_lut((int)(math.log(FFTLength/16,2)),lut_adr)
-    #print(wn)
-    stg0_tw.append(ComplexMul(stg0_bf[i],wn,DW_IN+2))
+    #stg0 twiddle, 16 cos/sin lut
+    stg0_tw =[]
+    for i in range(0,FFTLength):
+        lut_adr_l = i & (int)(2**(math.log(16,2)-2)-1) 
+        lut_adr_h = (i >> (int)(math.log(16,2)-2)) & 0x3 #2bit
+        lut_adr = lut_adr_h * lut_adr_l #0 0 0 0 , 0 1 2 3, 0 2 4 6, 0 0 0 0, 0 1 2 3。。。
+        wn = wn_lut((int)(math.log(FFTLength/16,2)),lut_adr)
+        #print(wn)
+        stg0_tw.append(ComplexMul(stg0_bf[i],wn,DW_IN+2))
 
-print(stg0_tw)
+    #print(stg0_tw)
 
-#stg1 bf4
-stg1_bf = [0]*128
-for i in range(0,int(FFTLength/16)):
-    for j in range(0,4):
-        res = (Butterfly4(stg0_tw[i*16+j],stg0_tw[i*16+j+4],stg0_tw[i*16+j+8],stg0_tw[i*16+j+12]))
-        stg1_bf[i*16+j]    = res[0]
-        stg1_bf[i*16+j+4]  = res[1]
-        stg1_bf[i*16+j+8]  = res[2]
-        stg1_bf[i*16+j+12] = res[3]
+    #stg1 bf4
+    stg1_bf = [0]*128
+    for i in range(0,int(FFTLength/16)):
+        for j in range(0,4):
+            res = (Butterfly4(stg0_tw[i*16+j],stg0_tw[i*16+j+4],stg0_tw[i*16+j+8],stg0_tw[i*16+j+12]))
+            stg1_bf[i*16+j]    = res[0]
+            stg1_bf[i*16+j+4]  = res[1]
+            stg1_bf[i*16+j+8]  = res[2]
+            stg1_bf[i*16+j+12] = res[3]
 
-print(stg1_bf)
+    #print(stg1_bf)
 
-#stg1 twiddle, 64 cos/sin lut
-stg1_tw =[]
-for i in range(0,FFTLength):
-    lut_adr_l = i & (int)(2**(math.log(64,2)-2)-1) 
-    lut_adr_h = (i >> (int)(math.log(64,2)-2)) & 0x3 #2bit
-    lut_adr = lut_adr_h * lut_adr_l #
-    wn = wn_lut((int)(math.log(FFTLength/64,2)),lut_adr)
-    #print(wn)
-    stg1_tw.append(ComplexMul(stg1_bf[i],wn,DW_IN+2+2))
+    #stg1 twiddle, 64 cos/sin lut
+    stg1_tw =[]
+    for i in range(0,FFTLength):
+        lut_adr_l = i & (int)(2**(math.log(64,2)-2)-1) 
+        lut_adr_h = (i >> (int)(math.log(64,2)-2)) & 0x3 #2bit
+        lut_adr = lut_adr_h * lut_adr_l #
+        wn = wn_lut((int)(math.log(FFTLength/64,2)),lut_adr)
+        #print(wn)
+        stg1_tw.append(ComplexMul(stg1_bf[i],wn,DW_IN+2+2))
 
-print(stg1_tw)
+    #print(stg1_tw)
 
-#stg2 bf4
-stg2_bf = [0]*128
-for i in range(0,int(FFTLength/64)):
-    for j in range(0,16):
-        res = (Butterfly4(stg1_tw[i*64+j],stg1_tw[i*64+j+16],stg1_tw[i*64+j+32],stg1_tw[i*64+j+48]))
-        stg2_bf[i*64+j]     = res[0]
-        stg2_bf[i*64+j+16]  = res[1]
-        stg2_bf[i*64+j+32]  = res[2]
-        stg2_bf[i*64+j+48]  = res[3]
+    #stg2 bf4
+    stg2_bf = [0]*128
+    for i in range(0,int(FFTLength/64)):
+        for j in range(0,16):
+            res = (Butterfly4(stg1_tw[i*64+j],stg1_tw[i*64+j+16],stg1_tw[i*64+j+32],stg1_tw[i*64+j+48]))
+            stg2_bf[i*64+j]     = res[0]
+            stg2_bf[i*64+j+16]  = res[1]
+            stg2_bf[i*64+j+32]  = res[2]
+            stg2_bf[i*64+j+48]  = res[3]
 
-print(stg2_bf)
+    #print(stg2_bf)
 
-#stg2 twiddle, 128 cos/sin lut
-stg2_tw =[]
-for i in range(0,FFTLength):
-    lut_adr_l = i & (int)(2**(math.log(128,2)-2)-1) 
-    lut_adr_h = (i >> (int)(math.log(128,2)-2)) & 0x3 #2bit
-    lut_adr = lut_adr_h * lut_adr_l #
-    wn = wn_lut((int)(math.log(FFTLength/128,2)),lut_adr)
-    #print(wn)
-    stg2_tw.append(ComplexMul(stg2_bf[i],wn,DW_IN+2+2+2))
+    #stg2 twiddle, for last BF2 64 cos/sin lut 
+    stg2_tw =[]
+    for i in range(0,FFTLength):
+        lut_adr_l = i & (int)(2**(math.log(128,2)-1)-1) 
+        lut_adr_h = (i >> (int)(math.log(128,2)-1)) & 0x1 #1bit
+        lut_adr = lut_adr_h * lut_adr_l 
+        #print("stg2tw",lut_adr)
+        wn = wn_lut((int)(math.log(FFTLength/128,2)),lut_adr) #64 depth
+        #print(wn)
+        stg2_tw.append(ComplexMul(stg2_bf[i],wn,DW_IN+2+2+2))
 
-print(stg2_tw)
-
-
-#stg3 bf2 
-stg3_bf = [0]*128
-for i in range(0,int(FFTLength/128)): #i = 0
-    for j in range(0,64):
-        res = Butterfly2(stg2_tw[i*128+j],stg2_tw[i*128+j+64])
-        stg3_bf[i*128+j]     = res[0]
-        stg3_bf[i*128+j+64]  = res[1]
-
-print(stg3_bf)
+    #print(stg2_tw)
 
 
+    #stg3 bf2 
+    stg3_bf = [0]*128 #DW_IN+8 bit
+    for i in range(0,int(FFTLength/128)): #i = 0
+        for j in range(0,64):
+            res = Butterfly2(stg2_tw[i*128+j],stg2_tw[i*128+j+64])
+            stg3_bf[i*128+j]     = res[0]
+            stg3_bf[i*128+j+64]  = res[1]
+
+    #print(stg3_bf)
+    #last , mul 1/sqrt(fft_length)
+
+    fft_out = [0]*128 #DW_IN+8 bit
+    for i in range(0,FFTLength):
+        out_real = (int)(stg3_bf[i].real * round(1/math.sqrt(FFTLength) * 2**SQRT_FP)) >> (SQRT_FP-1)
+        out_real = (out_real + 1) >> 1  
+        out_imag = (int)(stg3_bf[i].imag * round(1/math.sqrt(FFTLength) * 2**SQRT_FP)) >> (SQRT_FP-1)
+        out_imag = (out_imag + 1) >> 1  
+        out_real = clip(out_real , DW_IN)
+        out_imag = clip(out_imag , DW_IN)
+        fft_out[i] = complex(out_real,out_imag)
+    return fft_out
+
+print(fft128(fft_in))
