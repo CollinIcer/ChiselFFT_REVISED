@@ -180,4 +180,19 @@ def fft128(fft_in):
         fft_out[i] = complex(out_real,out_imag)
     return fft_out
 
-print(fft128(fft_in))
+
+def ifft128(fft_in):
+    fft_in_qi = [0]*128 #DW_IN+8 bit
+    fft_out_qi = [0]*128 #DW_IN+8 bit
+    ifft_out = [0]*128 #DW_IN+8 bit
+    for i in range(0,FFTLength):
+        fft_in_qi[i] = complex(fft_in[i].imag,fft_in[i].real)
+    fft_out_qi = fft128(fft_in_qi)
+    for i in range(0,FFTLength):
+        ifft_out[i] = complex(fft_out_qi[i].imag,fft_out_qi[i].real)
+
+    return ifft_out
+
+#print(fft128(fft_in))
+print(ifft128(fft_in))
+    
