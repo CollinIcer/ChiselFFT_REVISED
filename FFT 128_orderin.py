@@ -1,11 +1,12 @@
 #FFT 128
 import cmath
 import math
+import numpy as np
+import matplotlib.pyplot as plt 
 FFTLength=128
 COS_SIN_FP = 12
 SQRT_FP = 12
 DW_IN = 12
-
 def clip(op,DW):
     a = op
     if(a>=(2**(DW-1))):
@@ -196,6 +197,16 @@ fft_in.append(complex(58,-29      ) )
 fft_in.append(complex(66,-114     ) )
 fft_in.append(complex(-73,42      ) )
 
+#采样点选择1400个，因为设置的信号频率分量最高为600赫兹，根据采样定理知采样频率要大于信号频率2倍，所以这里设置采样频率为1400赫兹（即一秒内有1400个采样点，一样意思的）
+ffx=np.linspace(0,1,128)      
+ 
+#设置需要采样的信号，频率分量有200，400和600
+ffyi=7*np.sin(2*np.pi*20*ffx) + 5*np.sin(2*np.pi*40*ffx)+3*np.sin(2*np.pi*60*ffx)
+ffyq=7*np.sin(2*np.pi*10*ffx) + 5*np.sin(2*np.pi*30*ffx)+3*np.sin(2*np.pi*50*ffx)
+ffyiq=[]
+for i in range(0,128): 
+    ffyiq.append(complex(ffyi[i],ffyq[i]))
+
 
 #print(fft_in)
 #######################################################################
@@ -306,7 +317,21 @@ def ifft128(fft_in):
 
     return ifft_out
 
-fft_out = fft128(fft_in)
+#fft_out = fft128(fft_in)
+fft_out = fft128(ffyiq)
 print(fft_out)
 print(ifft128(fft_out))
+N=128
+x = np.arange(N)           # 频率个数
+abs_y=np.abs(fft_out)                # 取复数的绝对值，即复数的模(双边频谱)
+angle_y=np.angle(fft_out)              #取复数的角度
+ 
+plt.figure()
+plt.plot(x,abs_y)   
+plt.title('双边振幅谱（未归一化）')
+ 
+plt.figure()
+plt.plot(x,angle_y)   
+plt.title('双边相位谱（未归一化）')
+plt.show()
    
