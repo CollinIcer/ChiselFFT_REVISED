@@ -9,7 +9,7 @@ class zqh_fft_parameter(zqh_tilelink_node_module_parameter):
         super(zqh_fft_parameter, self).set_par()
         #self.par('div_width', 16)
         #self.par('div_init', 8680 - 1) #115200 baud @ 1GHz bus clock
-        self.par('tx_fifo_entries', 16)
+        #self.par('tx_fifo_entries', 16)
         self.par('rx_fifo_entries', 32) #32*4
         #self.par('parity_check', 1)
         #self.par('sync_delay', 3)
